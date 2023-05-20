@@ -26,14 +26,11 @@ int main() {
     printf("[info] starting tests...\n");
     printf("\n");
 
-    // TODOs
-
     // TODO: finish unit tests
-    // TODO: add vstr_from_format(cstr format, args...)
 
     // Variables
 
-    str temp;
+    str temp = NULL;
 
     // vstr_equ
 

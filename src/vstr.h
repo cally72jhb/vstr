@@ -3,6 +3,7 @@
 
 // Includes
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -358,10 +359,16 @@ inline f64 vstr_to_f64(cstr string); // Parse @string to a Double Value
  *
  *     %d    + 0.1        = "0.1"
  *     %5d   + 0.1        = "  0.1"
+ *     %05d  + 72.1       = "072.1"
+ *     %.3d  + 72.1       = "72.1"
+ *     %.3*d + 72.1       = "72.100"
  *
  *     %06h  + 92072      = "0167A8"
  *     %#h   + 92072      = "0x167A8"
  *     %#08h + 92072      = "0x000167A8"
+ *
+ *     %p    + null       = "null"
+ *     %#p   + pointer    = "0x239DB326" (example address)
  *
  *     %b    + 1          = "00000001"
  *     %b    + 0b11000101 = "11000101"
@@ -433,6 +440,9 @@ inline void vstr_free(str string); // Free @string
 #define vstr_back_char() vstr_back()
 #define vstr_ref_back() vstr_rback()
 #define vstr_ref_back_char() vstr_rback()
+
+#define vstr_format(format, ...) vstr_from_format(format, __VA_ARGS__)
+#define vstr_frmt(format, ...) vstr_from_format(format, __VA_ARGS__)
 
 #define vstr_rev() vstr_reverse()
 
@@ -4562,7 +4572,923 @@ inline f64 vstr_to_f64(cstr string) {
 
 // Format Function
 
-inline str vstr_from_format(cstr format, ...);
+inline str vstr_from_format(cstr format, ...) {
+    u32 format_len = vstr_len(format);
+    u32 result_len = format_len;
+
+    if (format_len == 0) {
+        str result = malloc(sizeof(char) * 1);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        *result = '\0';
+
+        return result;
+    } else if (format_len == 1) {
+        str result = malloc(sizeof(char) * 2);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = *format;
+        result[1] = '\0';
+
+        return result;
+    }
+
+    va_list list;
+    va_start(list, format);
+
+    str result = malloc(sizeof(char) * format_len);
+
+    if (result == NULL) {
+        va_end(list);
+        return NULL;
+    }
+
+    str temp = result;
+
+    for (; *format != '\0'; ++format) {
+        if (*format != '%') {
+            *result = *format;
+            result++;
+        } else {
+            format++;
+
+            bool pos_sign = false;
+            bool prefix = false;
+            bool zero_pad = false;
+
+            u32 min_width = 0;
+            u32 max_width = U32_MAX;
+
+            bool full_precision = false;
+
+            u32 len = 0;
+
+            if (*format == '+') {
+                pos_sign = true;
+                format++;
+
+                len++;
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            if (*format == '#') {
+                prefix = true;
+                format++;
+
+                len++;
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            if (*format == '0') {
+                zero_pad = true;
+                format++;
+
+                len++;
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            if (*format > CHAR_NUM_0 && *format <= CHAR_NUM_9) {
+                while (*format >= CHAR_NUM_0 && *format <= CHAR_NUM_9) {
+                    min_width = min_width * 10 + (u32) ((*format++) - CHAR_NUM_0);
+                    len++;
+                }
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            if (*format == '.') {
+                max_width = 0;
+                format++;
+                len++;
+
+                while (*format >= CHAR_NUM_0 && *format <= CHAR_NUM_9) {
+                    max_width = max_width * 10 + (u32) ((*format++) - CHAR_NUM_0);
+                    len++;
+                }
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            if (*format == '*') {
+                full_precision = true;
+                format++;
+
+                len++;
+
+                if (*format == '\0') {
+                    break;
+                }
+            }
+
+            str res;
+
+            u32 length;
+            u32 temp_length;
+
+            u32 index;
+            u32 i;
+
+            str temp_result;
+            str end;
+            char prev;
+
+            bool neg;
+            bool min;
+
+            u32 precision;
+            u64 u64_num;
+            u64 number;
+            u64 fraction;
+
+            switch (*format) {
+                case '%': {
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += 1 - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    *result = '%';
+                    result++;
+
+                    break;
+                }
+
+                case 'c': {
+                    char character = va_arg(list, char);
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(1, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = 1;
+
+                    while (temp_length++ < min_width) {
+                        *result = ' ';
+                        result++;
+                    }
+
+                    *result = character;
+                    result++;
+
+                    break;
+                }
+
+                case 's': {
+                    str string = va_arg(list, char*);
+
+                    if (string == NULL) {
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len += max2(4, min_width) - len;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+
+                        if (max_width > min_width) {
+                            temp_length = 4;
+
+                            while (temp_length++ < min_width) {
+                                *result = ' ';
+                                result++;
+                            }
+                        }
+
+                        i = 0;
+
+                        if (i++ < max_width) *result++ = 'n';
+                        if (i++ < max_width) *result++ = 'u';
+                        if (i++ < max_width) *result++ = 'l';
+                        if (i++ < max_width) *result++ = 'l';
+
+                        break;
+                    }
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    length = vstr_len(string);
+                    i = max2(length, min_width);
+                    result_len += min2(i, max_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    if (max_width > min_width) {
+                        temp_length = length;
+
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+                    }
+
+                    for (i = 0; i < max_width && *string != '\0'; ++string, ++result, i++) {
+                        *result = *string;
+                    }
+
+                    break;
+                }
+
+                case 'i': {
+                    s32 value_s32 = va_arg(list, s32);
+
+                    neg = false;
+                    min = false;
+
+                    if (value_s32 == S32_MIN) {
+                        min = true;
+                        value_s32 = S32_MIN + 1;
+                    }
+
+                    if (value_s32 < 0) {
+                        value_s32 = -value_s32;
+                        neg = true;
+                    }
+
+                    length = 1 + (neg || pos_sign ? 1 : 0);
+                    s32 temp_num_s32 = value_s32;
+
+                    while ((temp_num_s32 /= 10) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if ((neg || pos_sign) && zero_pad) {
+                        *result = neg ? '-' : '+';
+                        result++;
+                    }
+
+                    while (temp_length++ < min_width) {
+                        *result = zero_pad ? '0' : ' ';
+                        result++;
+                    }
+
+                    if ((neg || pos_sign) && !zero_pad) {
+                        *result = neg ? '-' : '+';
+                        result++;
+                    }
+
+                    temp_result = result;
+
+                    do {
+                        *temp_result = (char) (value_s32 % 10 + CHAR_NUM_0);
+                        temp_result++;
+                    } while ((value_s32 /= 10) > 0);
+
+                    end = temp_result - 1;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                case 'u': {
+                    u64 value_u32 = (u64) va_arg(list, u64);
+
+                    length = 1 + (pos_sign ? 1 : 0);
+                    u64 temp_num_u32 = value_u32;
+
+                    while ((temp_num_u32 /= 10) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if (pos_sign && zero_pad) {
+                        *result = '+';
+                        result++;
+                    }
+
+                    while (temp_length++ < min_width) {
+                        *result = zero_pad ? '0' : ' ';
+                        result++;
+                    }
+
+                    if (pos_sign && !zero_pad) {
+                        *result = '+';
+                        result++;
+                    }
+
+                    temp_result = result;
+
+                    do {
+                        *temp_result = (char) (value_u32 % 10 + CHAR_NUM_0);
+                        temp_result++;
+                    } while ((value_u32 /= 10) > 0);
+
+                    end = temp_result - 1;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                case 'l': {
+                    s64 value_s64 = (s64) va_arg(list, s64);
+
+                    neg = false;
+                    min = false;
+
+                    if (value_s64 == S64_MIN) {
+                        min = true;
+                        value_s64 = S64_MIN + 1;
+                    }
+
+                    if (value_s64 < 0) {
+                        value_s64 = -value_s64;
+                        neg = true;
+                    }
+
+                    length = 1 + (neg || pos_sign ? 1 : 0);
+                    s64 temp_num_s64 = value_s64;
+
+                    while ((temp_num_s64 /= 10) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if ((neg || pos_sign) && zero_pad) {
+                        *result = neg ? '-' : '+';
+                        result++;
+                    }
+
+                    while (temp_length++ < min_width) {
+                        *result = zero_pad ? '0' : ' ';
+                        result++;
+                    }
+
+                    if ((neg || pos_sign) && !zero_pad) {
+                        *result = neg ? '-' : '+';
+                        result++;
+                    }
+
+                    temp_result = result;
+
+                    do {
+                        *temp_result = (char) (value_s64 % 10 + CHAR_NUM_0);
+                        temp_result++;
+                    } while ((value_s64 /= 10) > 0);
+
+                    end = temp_result - 1;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                case 'f':
+                case 'd': {
+                    f64 value_f64 = va_arg(list, f64);
+
+                    if (value_f64 != value_f64) {
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len += max2(3, min_width) - len;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+
+                        temp_length = 3;
+
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+
+                        *result++ = 'N';
+                        *result++ = 'a';
+                        *result++ = 'N';
+
+                        break;
+                    } else if (value_f64 > F64_MAX) {
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len += max2(4, min_width) - len;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+
+                        temp_length = 4;
+
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+
+                        *result++ = '+';
+                        *result++ = 'I';
+                        *result++ = 'N';
+                        *result++ = 'F';
+
+                        break;
+                    } else if (value_f64 < -F64_MAX) {
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len += max2(4, min_width) - len;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+
+                        temp_length = 4;
+
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+
+                        *result++ = '-';
+                        *result++ = 'I';
+                        *result++ = 'N';
+                        *result++ = 'F';
+
+                        break;
+                    }
+
+                    if (value_f64 < 0.0 && value_f64 != -0.0) {
+                        value_f64 = -value_f64;
+                        neg = true;
+                    } else {
+                        neg = false;
+                    }
+
+                    precision = max_width == U32_MAX ? DOUBLE_PRECISION : max_width;
+                    u64_num = (u64) value_f64;
+
+                    length = precision + (neg || pos_sign ? 1 : 0) + (precision == 0 ? 0 : 1) + 1;
+                    while ((u64_num /= 10) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    f64 pow_prec_f64 = f64_pow10((s32) precision);
+
+                    number = (u64) value_f64;
+                    f64 temp_num_f64 = (value_f64 - (f64) number) * pow_prec_f64;
+                    fraction = (u64) temp_num_f64;
+
+                    if ((temp_num_f64 - (f64) fraction) >= 0.5) {
+                        fraction++;
+
+                        if ((f64) fraction >= pow_prec_f64) {
+                            number++;
+                            fraction = 0;
+                        }
+                    }
+
+                    if (precision != 0) {
+                        while (precision--) {
+                            *result = (char) (CHAR_NUM_0 + fraction % 10);
+                            result++;
+                            fraction /= 10;
+                        }
+
+                        *result = '.';
+                        result++;
+                    }
+
+                    if (!number) {
+                        *result = CHAR_NUM_0;
+                        result++;
+                    }
+
+                    while (number) {
+                        *result = (char) (CHAR_NUM_0 + number % 10);
+                        result++;
+                        number /= 10;
+                    }
+
+                    i = 0;
+
+                    if (!full_precision) {
+                        result = res + index;
+
+                        for (; *result == '0' && i < precision; ++result, i++);
+                        if (value_f64 - (f64) ((u64) value_f64) == 0) i--;
+                    }
+
+                    result = res + index + length - ((neg || pos_sign) ? 1 : 0);
+
+                    temp_length = length - i - ((neg || pos_sign) ? (zero_pad ? 1 : 0) : 0);
+
+                    if ((neg || pos_sign) && !zero_pad) {
+                        *result = neg ? '-' : '+';
+                        result++;
+                    }
+
+                    while (temp_length++ < min_width) {
+                        *result = zero_pad ? '0' : ' ';
+                        result++;
+                    }
+
+                    end = result - 1;
+
+                    if ((neg || pos_sign) && zero_pad) {
+                        if (min_width < length - i) end++;
+                        *end = neg ? '-' : '+';
+                    }
+
+                    result = res + index;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width) - (full_precision ? 0 : 1);
+
+                    if (!full_precision) {
+                        for (; *result == '0' && i < precision; --result, i++);
+                        result++;
+
+                        if (value_f64 - (f64) ((u64) value_f64) == 0) {
+                            result++;
+                            i--;
+                        }
+
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len -= i;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+                    }
+
+                    break;
+                }
+
+                case 'p': {
+                    void* value_adr = va_arg(list, void*);
+
+                    if (value_adr == NULL) {
+                        index = (u32) (result - temp) / sizeof(char);
+                        result_len += max2(4, min_width) - len;
+
+                        res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                        if (res == NULL) {
+                            va_end(list);
+                            free(temp);
+                            return NULL;
+                        }
+
+                        temp = res;
+                        result = res + index;
+
+                        if (max_width > min_width) {
+                            temp_length = 4;
+
+                            while (temp_length++ < min_width) {
+                                *result = ' ';
+                                result++;
+                            }
+                        }
+
+                        i = 0;
+
+                        if (i++ < max_width) *result++ = 'n';
+                        if (i++ < max_width) *result++ = 'u';
+                        if (i++ < max_width) *result++ = 'l';
+                        if (i++ < max_width) *result++ = 'l';
+
+                        break;
+                    }
+
+                    u64 adr_hex = (u64) value_adr;
+
+                    length = 1 + (prefix ? 2 : 0);
+                    u32 temp_num_adr = adr_hex;
+
+                    while ((temp_num_adr /= 16) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if (!zero_pad) {
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+                    }
+
+                    if (prefix) {
+                        *result++ = '0';
+                        *result++ = 'x';
+                    }
+
+                    if (zero_pad) {
+                        while (temp_length++ < min_width) {
+                            *result = '0';
+                            result++;
+                        }
+                    }
+
+                    temp_result = result;
+
+                    do {
+                        *temp_result = "0123456789ABCDEF"[adr_hex % 16];
+                        temp_result++;
+                    } while ((adr_hex /= 16) > 0);
+
+                    end = temp_result - 1;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                case 'h': {
+                    u32 value_hex = va_arg(list, u32);
+
+                    length = 1 + (prefix ? 2 : 0);
+                    u32 temp_num_hex = value_hex;
+
+                    while ((temp_num_hex /= 16) > 0) length++;
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    result_len += max2(length, min_width) - len;
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if (!zero_pad) {
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+                    }
+
+                    if (prefix) {
+                        *result++ = '0';
+                        *result++ = 'x';
+                    }
+
+                    if (zero_pad) {
+                        while (temp_length++ < min_width) {
+                            *result = '0';
+                            result++;
+                        }
+                    }
+
+                    temp_result = result;
+
+                    do {
+                        *temp_result = "0123456789ABCDEF"[value_hex % 16];
+                        temp_result++;
+                    } while ((value_hex /= 16) > 0);
+
+                    end = temp_result - 1;
+
+                    while (result < end) {
+                        prev = *result;
+                        *result++ = *end;
+                        *end-- = prev;
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                case 'b': {
+                    u32 value_bin = va_arg(list, u32);
+
+                    index = (u32) (result - temp) / sizeof(char);
+                    length = 8 + (prefix ? 2 : 0);
+                    result_len += max2(length, min_width);
+
+                    res = realloc(temp, sizeof(char) * (result_len + 1));
+
+                    if (res == NULL) {
+                        va_end(list);
+                        free(temp);
+                        return NULL;
+                    }
+
+                    temp = res;
+                    result = res + index;
+
+                    temp_length = length;
+
+                    if (!zero_pad) {
+                        while (temp_length++ < min_width) {
+                            *result = ' ';
+                            result++;
+                        }
+                    }
+
+                    if (prefix) {
+                        *result++ = '0';
+                        *result++ = 'b';
+                    }
+
+                    while (temp_length++ < min_width) {
+                        *result = zero_pad ? '0' : ' ';
+                        result++;
+                    }
+
+                    u8 bin = value_bin;
+                    u32 bits = 8;
+
+                    temp_result = result + 7;
+
+                    for (; bits--; --temp_result, bin >>= 1) {
+                        *temp_result = (bin & 1) == 0 ? '0' : '1';
+                    }
+
+                    result = res + index + max2(length, min_width);
+
+                    break;
+                }
+
+                default: {
+                    break;
+                }
+            }
+        }
+    }
+
+    *result = '\0';
+
+    va_end(list);
+
+    return temp;
+}
 
 // Other Functions
 
