@@ -2,7 +2,9 @@
 simple dynamic strings for c<br/>
 The library can be used header-only by moving `vstr.h` to a directory in your program.<br/>
 <br/>
-vstr contains just about all the functions you'll need.
+vstr contains just about all the functions you'll need.<br/>
+In total there are 128 functions ranging from searching algorithmns to advanced formatting<br/>
+to number/float to string conversation.
 
 # creating new string
 <pre>
