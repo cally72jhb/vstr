@@ -2,14 +2,14 @@
 simple dynamic strings for c<br/>
 The library can be used header-only by moving `vstr.h` to a directory in your program.<br/>
 <br/>
-vstr contains just about all the functions you'll need.<br/>
+**vstr** contains just about all the functions you'll need.<br/>
 In total there are 128 functions ranging from searching algorithms to advanced formatting<br/>
 to number/float to string conversation.
 
 ## what is the difference between vstr and vstring?
 
-vstr and vstring are separated by different files, but can be used together in one project.<br/>
-vstr is designed like `c-strings` and is compatible with them. It does not store the length of the string and must<br/>
+**vstr** and **vstring** are separated by different files, but can be used together in one project.<br/>
+**vstr** is designed like `c-strings` and is compatible with them. It does not store the length of the string and must<br/>
 go through the entire string to determine it's length.<br/>
 <br/>
 ```
@@ -17,11 +17,11 @@ go through the entire string to determine it's length.<br/>
 | String Data (built like vstr) | Null Termination |
 +-------------------------------+------------------+
 ```
-
 <br/>
-vstring is a string of known length. The length is stored in the 4 bytes `int` before<br/>
+
+**vstring** is a string of known length. The length is stored in the 4 bytes `(unsigned int)` before<br/>
 the pointer that is returned to the user.<br/>
-Since the length of the string is always known, vstring is faster than vstr, but requires more memory.<br/><br/>
+Since the length of the string is always known, **vstring** is faster than **vstr**, but requires more memory.<br/><br/>
 
 ```
 +---------------+----------------------------------+------------------+
@@ -41,8 +41,9 @@ To decide between vstr and vstring some things have to be considered:
 | fast implementation                                     | takes time to implement                                   |
 | made for small strings and few memory                   | made for big applications with long strings               |
 <br/>
-For fast implementation it's better to use vstr. For projects that work<br/>
-with long strings, the speed of the application is better with vstring.
+
+For fast implementation it's better to use **vstr**. For projects that work<br/>
+with long strings, the speed of the application is better with **vstring**.
 
 ## creating new string
 <pre>
