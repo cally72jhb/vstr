@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 3.24)
 # Project
 
 project(
-		vstr
+	vstr
 
-		VERSION 0.0.2
-		LANGUAGES C
-		HOMEPAGE_URL "https://cally72jhb.github.io/"
-		DESCRIPTION "vstr - simple dynamic strings for c"
+	VERSION 0.0.2
+	LANGUAGES C
+	HOMEPAGE_URL "https://cally72jhb.github.io/"
+	DESCRIPTION "vstr - simple dynamic strings for c"
 )
 
 # Properties
@@ -24,8 +24,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Executable
 
 add_executable(
-        vstr
+	vstr
 
-		src/main.c
-		src/vstr.h
+	src/main.c
+
+	src/vstr.h
+	src/vstring.h
 )
