@@ -1,6 +1,9 @@
 #include <stdio.h>
 
 #include "vstr.h"
+#include "vstring.h"
+
+#include "math.h"
 
 // Defines
 
@@ -208,8 +211,8 @@ int main() {
     test_string("from_f32(-1.0F)", vstr_from_f32(-1.0F), "-1.00000");
     test_string("from_f32(-72.0F)", vstr_from_f32(-72.0F), "-72.00000");
     test_string("from_f32(NAN)", vstr_from_f32(NAN), "NaN");
-    test_string("from_f32(-INF)", vstr_from_f32(NF_INF), "-INF");
-    test_string("from_f32(+INF)", vstr_from_f32(PF_INF), "+INF");
+    test_string("from_f32(-INF)", vstr_from_f32(F32_N_INF), "-INF");
+    test_string("from_f32(+INF)", vstr_from_f32(F32_P_INF), "+INF");
 
     // vstr_from_f64
 
@@ -224,8 +227,8 @@ int main() {
     test_string("from_f64(-1.0F)", vstr_from_f64(-1.0F), "-1.00000");
     test_string("from_f64(-72.0F)", vstr_from_f64(-72.0F), "-72.00000");
     test_string("from_f64(NAN)", vstr_from_f64(NAN), "NaN");
-    test_string("from_f64(-INF)", vstr_from_f64(ND_INF), "-INF");
-    test_string("from_f64(+INF)", vstr_from_f64(PD_INF), "+INF");
+    test_string("from_f64(-INF)", vstr_from_f64(F64_N_INF), "-INF");
+    test_string("from_f64(+INF)", vstr_from_f64(F64_P_INF), "+INF");
 
     // vstr_from_f32_p
 
@@ -240,8 +243,8 @@ int main() {
     test_string("from_f32_p(-1.0F, 0)", vstr_from_f32_p(-1.0F, 0), "-1");
     test_string("from_f32_p(-72.0F, 0)", vstr_from_f32_p(-72.0F, 0), "-72");
     test_string("from_f32_p(NAN, 0)", vstr_from_f32_p(NAN, 0), "NaN");
-    test_string("from_f32_p(-INF, 0)", vstr_from_f32_p(NF_INF, 0), "-INF");
-    test_string("from_f32_p(+INF, 0)", vstr_from_f32_p(PF_INF, 0), "+INF");
+    test_string("from_f32_p(-INF, 0)", vstr_from_f32_p(F32_N_INF, 0), "-INF");
+    test_string("from_f32_p(+INF, 0)", vstr_from_f32_p(F32_P_INF, 0), "+INF");
 
     test_string("from_f32_p(0.0F, 1)", vstr_from_f32_p(0.0F, 1), "0.0");
     test_string("from_f32_p(0.1F, 1)", vstr_from_f32_p(0.1F, 1), "0.1");
@@ -252,8 +255,8 @@ int main() {
     test_string("from_f32_p(-1.0F, 1)", vstr_from_f32_p(-1.0F, 1), "-1.0");
     test_string("from_f32_p(-72.0F, 1)", vstr_from_f32_p(-72.0F, 1), "-72.0");
     test_string("from_f32_p(NAN, 1)", vstr_from_f32_p(NAN, 1), "NaN");
-    test_string("from_f32_p(-INF, 1)", vstr_from_f32_p(NF_INF, 1), "-INF");
-    test_string("from_f32_p(+INF, 1)", vstr_from_f32_p(PF_INF, 1), "+INF");
+    test_string("from_f32_p(-INF, 1)", vstr_from_f32_p(F32_N_INF, 1), "-INF");
+    test_string("from_f32_p(+INF, 1)", vstr_from_f32_p(F32_P_INF, 1), "+INF");
 
     test_string("from_f32_p(0.0F, 5)", vstr_from_f32_p(0.0F, 5), "0.00000");
     test_string("from_f32_p(0.1F, 5)", vstr_from_f32_p(0.1F, 5), "0.10000");
@@ -264,8 +267,8 @@ int main() {
     test_string("from_f32_p(-1.0F, 5)", vstr_from_f32_p(-1.0F, 5), "-1.00000");
     test_string("from_f32_p(-72.0F, 5)", vstr_from_f32_p(-72.0F, 5), "-72.00000");
     test_string("from_f32_p(NAN, 5)", vstr_from_f32_p(NAN, 5), "NaN");
-    test_string("from_f32_p(-INF, 5)", vstr_from_f32_p(NF_INF, 5), "-INF");
-    test_string("from_f32_p(+INF, 5)", vstr_from_f32_p(PF_INF, 5), "+INF");
+    test_string("from_f32_p(-INF, 5)", vstr_from_f32_p(F32_N_INF, 5), "-INF");
+    test_string("from_f32_p(+INF, 5)", vstr_from_f32_p(F32_P_INF, 5), "+INF");
 
     // vstr_from_f64_p
 
@@ -280,8 +283,8 @@ int main() {
     test_string("from_f64_p(-1.0, 0)", vstr_from_f64_p(-1.0, 0), "-1");
     test_string("from_f64_p(-72.0, 0)", vstr_from_f64_p(-72.0, 0), "-72");
     test_string("from_f64_p(NAN, 0)", vstr_from_f64_p(NAN, 0), "NaN");
-    test_string("from_f64_p(-INF, 0)", vstr_from_f64_p(NF_INF, 0), "-INF");
-    test_string("from_f64_p(+INF, 0)", vstr_from_f64_p(PF_INF, 0), "+INF");
+    test_string("from_f64_p(-INF, 0)", vstr_from_f64_p(F64_N_INF, 0), "-INF");
+    test_string("from_f64_p(+INF, 0)", vstr_from_f64_p(F64_P_INF, 0), "+INF");
 
     test_string("from_f64_p(0.0, 1)", vstr_from_f64_p(0.0, 1), "0.0");
     test_string("from_f64_p(0.1, 1)", vstr_from_f64_p(0.1, 1), "0.1");
@@ -292,8 +295,8 @@ int main() {
     test_string("from_f64_p(-1.0, 1)", vstr_from_f64_p(-1.0, 1), "-1.0");
     test_string("from_f64_p(-72.0, 1)", vstr_from_f64_p(-72.0, 1), "-72.0");
     test_string("from_f64_p(NAN, 1)", vstr_from_f64_p(NAN, 1), "NaN");
-    test_string("from_f64_p(-INF, 1)", vstr_from_f64_p(NF_INF, 1), "-INF");
-    test_string("from_f64_p(+INF, 1)", vstr_from_f64_p(PF_INF, 1), "+INF");
+    test_string("from_f64_p(-INF, 1)", vstr_from_f64_p(F64_N_INF, 1), "-INF");
+    test_string("from_f64_p(+INF, 1)", vstr_from_f64_p(F64_P_INF, 1), "+INF");
 
     test_string("from_f64_p(0.0, 5)", vstr_from_f64_p(0.0, 5), "0.00000");
     test_string("from_f64_p(0.1, 5)", vstr_from_f64_p(0.1, 5), "0.10000");
@@ -304,8 +307,8 @@ int main() {
     test_string("from_f64_p(-1.0, 5)", vstr_from_f64_p(-1.0, 5), "-1.00000");
     test_string("from_f64_p(-72.0, 5)", vstr_from_f64_p(-72.0, 5), "-72.00000");
     test_string("from_f64_p(NAN, 5)", vstr_from_f64_p(NAN, 5), "NaN");
-    test_string("from_f64_p(-INF, 5)", vstr_from_f64_p(NF_INF, 5), "-INF");
-    test_string("from_f64_p(+INF, 5)", vstr_from_f64_p(PF_INF, 5), "+INF");
+    test_string("from_f64_p(-INF, 5)", vstr_from_f64_p(F64_N_INF, 5), "-INF");
+    test_string("from_f64_p(+INF, 5)", vstr_from_f64_p(F64_P_INF, 5), "+INF");
 
     // vstr_len
 

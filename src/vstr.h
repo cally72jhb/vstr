@@ -1,5 +1,5 @@
-#ifndef VECTOR_STRING
-#define VECTOR_STRING
+#ifndef VECTOR_STR
+#define VECTOR_STR
 
 // Includes
 
@@ -25,19 +25,16 @@
 
 #define CHAR_CASE_DIFF (-(CHAR_UPPERCASE_A - CHAR_LOWERCASE_A))
 
-#define FLOAT_PRECISION     (5)
 #define FLOAT_PRECISION_MAX (8 - 1)
-
-#define DOUBLE_PRECISION     (5)
 #define DOUBLE_PRECISION_MAX (16 - 1)
 
 // Util Defines
 
-#define min2(a, b) ((a) < (b) ? (a) : (b))
-#define max2(a, b) ((a) > (b) ? (a) : (b))
+#define min2(value1, value2) ((value1) < (value2) ? (value1) : (value2))
+#define max2(value1, value2) ((value1) > (value2) ? (value1) : (value2))
 
-#define min3(a, b, c) min2(min2(a, b), c)
-#define max3(a, b, c) max2(max2(a, b), c)
+#define min3(value1, value2, value3) min2(min2(value1, value2), value3)
+#define max3(value1, value2, value3) max2(max2(value1, value2), value3)
 
 // Technical Defines
 
@@ -67,30 +64,36 @@
 
 #define HUGE_NUM 1E+300
 
-#define INF ((float) (HUGE_NUM * HUGE_NUM))
+#define F32_INF ((float) (HUGE_NUM * HUGE_NUM))
+#define F64_INF ((double) (HUGE_NUM * HUGE_NUM))
 
-#define NF_INF (-(float) (INF * INF))
-#define PF_INF (+(float) (INF * INF))
+#define F32_N_INF (-F32_INF)
+#define F32_P_INF (+F32_INF)
 
-#define ND_INF (-(double) (INF * INF))
-#define PD_INF (+(double) (INF * INF))
+#define F64_N_INF (-F64_INF)
+#define F64_P_INF (+F64_INF)
 
 // NAN (Not a Number)
 
-#define NAN (INF * 0.0)
+#define F32_NAN (F32_INF * 0.0F)
+#define F64_NAN (F64_INF * 0.0)
 
-#define NF_NAN (-(float) (INF * 0.0F))
-#define PF_NAN (+(float) (INF * 0.0F))
+// User Defined Defines (you cannot change the length of the strings listed below)
 
-#define ND_NAN (-(double) (INF * 0.0))
-#define PD_NAN (+(double) (INF * 0.0))
+#define FLOAT_PRECISION  (5) /* how many digits to print when printing floats */
+#define DOUBLE_PRECISION (5) /* how many digits to print when printing doubles */
 
-// Typedefs
+#define NEGATIVE_SIGN_CHARACTER ('-') /* the character that is placed in front of the "INF" when printing negative infinity */
+#define POSITIVE_SIGN_CHARACTER ('+') /* the character that is placed in front of the "INF" when printing positive infinity */
 
-typedef char* vstr;
+#define NAN_NAME ("NaN") /* what to output when printing NAN (Not a Number) (string has to be 3 characters) */
+#define INF_NAME ("INF") /* what to output when printing INF (Infinity +/-) (string has to be 3 characters) */
 
-typedef char* str;
-typedef const char* cstr;
+#define LOWERCASE_NAN_NAME ("nan") /* the lowercase of NAN_NAME (required to always be the same as NAN_NAME, but lowercase) */
+#define LOWERCASE_INF_NAME ("inf") /* the lowercase of INF_NAME (required to always be the same as INF_NAME, but lowercase) */
+
+#define INF_NAME_ALLOW_NO_SIGN 1 /* allows "INF" to be parsed as +INF (normally it would require "+INF") */
+#define INF_NAME_INCLUDE_SIGN 1  /* writes +/- INF with their sign before the INF_NAME */
 
 // Util Typedefs
 
@@ -107,10 +110,19 @@ typedef unsigned long long u64;
 typedef float  f32;
 typedef double f64;
 
+// Typedefs
+
+typedef char* vstr;
+
+typedef char* str;
+typedef const char* cstr;
+
 // Mathematical Functions
 
-f32 f32_pow10(s32 exp);
-f64 f64_pow10(s32 exp);
+static const u64 vstr_pow10s[16]; // Powers of 10 (16 Elements)
+
+f32 vstr_f32_pow10(s32 exp); // 10 to the Power of @exp & Return Result as f32
+f64 vstr_f64_pow10(s32 exp); // 10 to the Power of @exp & Return Result as f64
 
 // Dynamically Allocated String Functions [ return NULL/U32_MAX on fail/notfound ] ( in total 128 vstr_... functions )
 
@@ -373,9 +385,10 @@ inline f64 vstr_to_f64(cstr string); // Parse @string to a Double Value
  *     %b    + 1          = "00000001"
  *     %b    + 0b11000101 = "11000101"
  *     %#b   + 0b11000101 = "0b11000101"
+ *     %#10b + 0b11000101 = "  0b11000101"
  * */
 
-inline str vstr_from_format(cstr format, ...);
+str vstr_from_format(cstr format, ...);
 
 // Other Functions
 
@@ -432,11 +445,6 @@ inline void vstr_free(str string); // Free @string
 #define vstr_uppercase() vstr_upper()
 #define vstr_lowercase() vstr_lower()
 
-#define char_uppercase()    char_upper()
-#define char_to_uppercase() char_upper()
-#define char_lowercase()    char_lower()
-#define char_to_lowercase() char_lower()
-
 #define vstr_back_char() vstr_back()
 #define vstr_ref_back() vstr_rback()
 #define vstr_ref_back_char() vstr_rback()
@@ -448,8 +456,6 @@ inline void vstr_free(str string); // Free @string
 
 #define vstr_comp_diff() vstr_levenshtein()
 #define vstr_diff() vstr_levenshtein()
-
-#define free_str() vstr_free()
 
 // Char Functions [ return CHAR_NULL on fail ]
 
@@ -477,7 +483,7 @@ inline char char_to_num(char character);
 
 // Mathematical Functions
 
-static const u64 pow10s[] = {
+static const u64 vstr_pow10s[] = {
         1,
         10,
         100,
@@ -496,7 +502,7 @@ static const u64 pow10s[] = {
         1000000000000000
 };
 
-f32 f32_pow10(s32 exp) {
+f32 vstr_f32_pow10(s32 exp) {
     f32 result = 1.0F;
     bool neg = false;
 
@@ -508,16 +514,16 @@ f32 f32_pow10(s32 exp) {
     }
 
     while (exp > 15) {
-        result *= (f32) pow10s[15];
+        result *= (f32) vstr_pow10s[15];
         exp -= 15;
     }
 
-    result *= (f32) pow10s[exp];
+    result *= (f32) vstr_pow10s[exp];
 
     return neg ? 1.0F / result : result;
 }
 
-f64 f64_pow10(s32 exp) {
+f64 vstr_f64_pow10(s32 exp) {
     f64 result = 1.0;
     bool neg = false;
 
@@ -529,11 +535,11 @@ f64 f64_pow10(s32 exp) {
     }
 
     while (exp > 15) {
-        result *= (f64) pow10s[15];
+        result *= (f64) vstr_pow10s[15];
         exp -= 15;
     }
 
-    result *= (f64) pow10s[exp];
+    result *= (f64) vstr_pow10s[exp];
 
     return neg ? 1.0 / result : result;
 }
@@ -1003,38 +1009,74 @@ inline str vstr_from_f32(f32 num) {
             return NULL;
         }
 
-        result[0] = 'N';
-        result[1] = 'a';
-        result[2] = 'N';
+        result[0] = NAN_NAME[0];
+        result[1] = NAN_NAME[1];
+        result[2] = NAN_NAME[2];
         result[3] = '\0';
 
         return result;
     } else if (num > F32_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '+';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = POSITIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     } else if (num < -F32_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '-';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = NEGATIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     }
@@ -1063,7 +1105,7 @@ inline str vstr_from_f32(f32 num) {
 
     str temp = result;
 
-    f32 pow_prec = f32_pow10((s32) precision);
+    f32 pow_prec = vstr_f32_pow10((s32) precision);
 
     u64 number = (u64) num;
     f32 temp_num = (num - (f32) number) * pow_prec;
@@ -1129,38 +1171,74 @@ inline str vstr_from_f64(f64 num) {
             return NULL;
         }
 
-        result[0] = 'N';
-        result[1] = 'a';
-        result[2] = 'N';
+        result[0] = NAN_NAME[0];
+        result[1] = NAN_NAME[1];
+        result[2] = NAN_NAME[2];
         result[3] = '\0';
 
         return result;
     } else if (num > F64_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '+';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = POSITIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     } else if (num < -F64_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '-';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = NEGATIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     }
@@ -1189,7 +1267,7 @@ inline str vstr_from_f64(f64 num) {
 
     str temp = result;
 
-    f64 pow_prec = f64_pow10((s32) precision);
+    f64 pow_prec = vstr_f64_pow10((s32) precision);
 
     u64 number = (u64) num;
     f64 temp_num = (num - (f64) number) * pow_prec;
@@ -1255,38 +1333,74 @@ inline str vstr_from_f32_p(f32 num, u32 precision) {
             return NULL;
         }
 
-        result[0] = 'N';
-        result[1] = 'a';
-        result[2] = 'N';
+        result[0] = NAN_NAME[0];
+        result[1] = NAN_NAME[1];
+        result[2] = NAN_NAME[2];
         result[3] = '\0';
 
         return result;
     } else if (num > F32_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '+';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = POSITIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     } else if (num < -F32_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '-';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = NEGATIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     }
@@ -1317,7 +1431,7 @@ inline str vstr_from_f32_p(f32 num, u32 precision) {
 
     str temp = result;
 
-    f32 pow_prec = f32_pow10((s32) precision);
+    f32 pow_prec = vstr_f32_pow10((s32) precision);
 
     u64 number = (u64) num;
     f32 temp_num = (num - (f32) number) * pow_prec;
@@ -1383,38 +1497,74 @@ inline str vstr_from_f64_p(f64 num, u32 precision) {
             return NULL;
         }
 
-        result[0] = 'N';
-        result[1] = 'a';
-        result[2] = 'N';
+        result[0] = NAN_NAME[0];
+        result[1] = NAN_NAME[1];
+        result[2] = NAN_NAME[2];
         result[3] = '\0';
 
         return result;
     } else if (num > F64_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '+';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = POSITIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     } else if (num < -F64_MAX) {
+
+#if INF_NAME_INCLUDE_SIGN == 1
+
         str result = malloc(sizeof(char) * 5);
 
         if (result == NULL) {
             return NULL;
         }
 
-        result[0] = '-';
-        result[1] = 'I';
-        result[2] = 'N';
-        result[3] = 'F';
+        result[0] = NEGATIVE_SIGN_CHARACTER;
+        result[1] = INF_NAME[0];
+        result[2] = INF_NAME[1];
+        result[3] = INF_NAME[2];
         result[4] = '\0';
+
+#else
+
+        str result = malloc(sizeof(char) * 4);
+
+        if (result == NULL) {
+            return NULL;
+        }
+
+        result[0] = INF_NAME[0];
+        result[1] = INF_NAME[1];
+        result[2] = INF_NAME[2];
+        result[3] = '\0';
+
+#endif
 
         return result;
     }
@@ -1445,7 +1595,7 @@ inline str vstr_from_f64_p(f64 num, u32 precision) {
 
     str temp = result;
 
-    f64 pow_prec = f64_pow10((s32) precision);
+    f64 pow_prec = vstr_f64_pow10((s32) precision);
 
     u64 number = (u64) num;
     f64 temp_num = (num - (f64) number) * pow_prec;
@@ -4469,23 +4619,36 @@ inline f32 vstr_to_f32(cstr string) {
     for (; length > 0 && *temp != '\0'; ++temp, length--, res++);
 
     if (length == 1 && res == 3) {
-        if (char_lower(string[0]) == 'i' && char_lower(string[1]) == 'n' && char_lower(string[2]) == 'f') {
-            return INF;
-        } else if (char_lower(string[0]) == 'n' && char_lower(string[1]) == 'a' && char_lower(string[2]) == 'n') {
-            return NAN;
+
+#if INF_NAME_ALLOW_NO_SIGN == 1 || INF_NAME_INCLUDE_SIGN == 0
+
+        if (char_lower(string[0]) == LOWERCASE_INF_NAME[0] && char_lower(string[1]) == LOWERCASE_INF_NAME[1] && char_lower(string[2]) == LOWERCASE_INF_NAME[2]) {
+            return F32_INF;
         }
-    } else if (res >= 4 && char_lower(string[1]) == 'i' && char_lower(string[2]) == 'n' && char_lower(string[3]) == 'f') {
-        if (char_lower(string[0]) == '+') {
-            return INF;
-        } else if (char_lower(string[0]) == '-') {
-            return -INF;
-        } else {
-            return NAN;
+
+#endif
+
+        else if (char_lower(string[0]) == LOWERCASE_NAN_NAME[0] && char_lower(string[1]) == LOWERCASE_NAN_NAME[1] && char_lower(string[2]) == LOWERCASE_NAN_NAME[2]) {
+            return F32_NAN;
         }
     }
 
+#if INF_NAME_INCLUDE_SIGN == 1
+
+    else if (res >= 4 && char_lower(string[1]) == LOWERCASE_INF_NAME[0] && char_lower(string[2]) == LOWERCASE_INF_NAME[1] && char_lower(string[3]) == LOWERCASE_INF_NAME[2]) {
+        if (char_lower(string[0]) == POSITIVE_SIGN_CHARACTER) {
+            return F32_P_INF;
+        } else if (char_lower(string[0]) == NEGATIVE_SIGN_CHARACTER) {
+            return F32_N_INF;
+        } else {
+            return F32_NAN;
+        }
+    }
+
+#endif
+
     if (*string == '\0' || *string < CHAR_NUM_0 || *string > CHAR_NUM_9) {
-        return NAN;
+        return F32_NAN;
     }
 
     bool neg = *string == '-';
@@ -4506,7 +4669,7 @@ inline f32 vstr_to_f32(cstr string) {
     string++;
 
     while (*string >= CHAR_NUM_0 && *string <= CHAR_NUM_9 && place < FLOAT_PRECISION_MAX) {
-        floating += f32_pow10(-place) * (f32) ((*string++) - CHAR_NUM_0);
+        floating += vstr_f32_pow10(-place) * (f32) ((*string++) - CHAR_NUM_0);
         place++;
     }
 
@@ -4524,23 +4687,36 @@ inline f64 vstr_to_f64(cstr string) {
     for (; length > 0 && *temp != '\0'; ++temp, length--, res++);
 
     if (length == 1 && res == 3) {
-        if (char_lower(string[0]) == 'i' && char_lower(string[1]) == 'n' && char_lower(string[2]) == 'f') {
-            return INF;
-        } else if (char_lower(string[0]) == 'n' && char_lower(string[1]) == 'a' && char_lower(string[2]) == 'n') {
-            return NAN;
+
+#if INF_NAME_ALLOW_NO_SIGN == 1 || INF_NAME_INCLUDE_SIGN == 0
+
+        if (char_lower(string[0]) == LOWERCASE_INF_NAME[0] && char_lower(string[1]) == LOWERCASE_INF_NAME[1] && char_lower(string[2]) == LOWERCASE_INF_NAME[2]) {
+            return F64_INF;
         }
-    } else if (res >= 4 && char_lower(string[1]) == 'i' && char_lower(string[2]) == 'n' && char_lower(string[3]) == 'f') {
-        if (char_lower(string[0]) == '+') {
-            return INF;
-        } else if (char_lower(string[0]) == '-') {
-            return -INF;
-        } else {
-            return NAN;
+
+#endif
+
+        else if (char_lower(string[0]) == LOWERCASE_NAN_NAME[0] && char_lower(string[1]) == LOWERCASE_NAN_NAME[1] && char_lower(string[2]) == LOWERCASE_NAN_NAME[2]) {
+            return F64_NAN;
         }
     }
 
+#if INF_NAME_INCLUDE_SIGN == 1
+
+    else if (res >= 4 && char_lower(string[1]) == LOWERCASE_INF_NAME[0] && char_lower(string[2]) == LOWERCASE_INF_NAME[1] && char_lower(string[3]) == LOWERCASE_INF_NAME[2]) {
+        if (char_lower(string[0]) == POSITIVE_SIGN_CHARACTER) {
+            return F64_P_INF;
+        } else if (char_lower(string[0]) == NEGATIVE_SIGN_CHARACTER) {
+            return F64_N_INF;
+        } else {
+            return F64_NAN;
+        }
+    }
+
+#endif
+
     if (*string == '\0' || *string < CHAR_NUM_0 || *string > CHAR_NUM_9) {
-        return NAN;
+        return F64_NAN;
     }
 
     bool neg = *string == '-';
@@ -4561,7 +4737,7 @@ inline f64 vstr_to_f64(cstr string) {
     string++;
 
     while (*string >= CHAR_NUM_0 && *string <= CHAR_NUM_9 && place < DOUBLE_PRECISION_MAX) {
-        floating += f64_pow10(-place) * (f64) ((*string++) - CHAR_NUM_0);
+        floating += vstr_f64_pow10(-place) * (f64) ((*string++) - CHAR_NUM_0);
         place++;
     }
 
@@ -4572,7 +4748,7 @@ inline f64 vstr_to_f64(cstr string) {
 
 // Format Function
 
-inline str vstr_from_format(cstr format, ...) {
+str vstr_from_format(cstr format, ...) {
     u32 format_len = vstr_len(format);
     u32 result_len = format_len;
 
@@ -5096,10 +5272,20 @@ inline str vstr_from_format(cstr format, ...) {
                             result++;
                         }
 
-                        *result++ = '+';
-                        *result++ = 'I';
-                        *result++ = 'N';
-                        *result++ = 'F';
+#if INF_NAME_INCLUDE_SIGN == 1
+
+                        *result++ = POSITIVE_SIGN_CHARACTER;
+                        *result++ = INF_NAME[0];
+                        *result++ = INF_NAME[1];
+                        *result++ = INF_NAME[2];
+
+#else
+
+                        *result++ = INF_NAME[0];
+                        *result++ = INF_NAME[1];
+                        *result++ = INF_NAME[2];
+
+#endif
 
                         break;
                     } else if (value_f64 < -F64_MAX) {
@@ -5124,10 +5310,20 @@ inline str vstr_from_format(cstr format, ...) {
                             result++;
                         }
 
-                        *result++ = '-';
-                        *result++ = 'I';
-                        *result++ = 'N';
-                        *result++ = 'F';
+#if INF_NAME_INCLUDE_SIGN == 1
+
+                        *result++ = NEGATIVE_SIGN_CHARACTER;
+                        *result++ = INF_NAME[0];
+                        *result++ = INF_NAME[1];
+                        *result++ = INF_NAME[2];
+
+#else
+
+                        *result++ = INF_NAME[0];
+                        *result++ = INF_NAME[1];
+                        *result++ = INF_NAME[2];
+
+#endif
 
                         break;
                     }
@@ -5159,7 +5355,7 @@ inline str vstr_from_format(cstr format, ...) {
                     temp = res;
                     result = res + index;
 
-                    f64 pow_prec_f64 = f64_pow10((s32) precision);
+                    f64 pow_prec_f64 = vstr_f64_pow10((s32) precision);
 
                     number = (u64) value_f64;
                     f64 temp_num_f64 = (value_f64 - (f64) number) * pow_prec_f64;
@@ -5308,7 +5504,7 @@ inline str vstr_from_format(cstr format, ...) {
                     while ((temp_num_adr /= 16) > 0) length++;
 
                     index = (u32) (result - temp) / sizeof(char);
-                    result_len += max2(length, min_width) - len;
+                    result_len += max2(16, min_width) - len;
 
                     res = realloc(temp, sizeof(char) * (result_len + 1));
 
@@ -5321,7 +5517,7 @@ inline str vstr_from_format(cstr format, ...) {
                     temp = res;
                     result = res + index;
 
-                    temp_length = length;
+                    temp_length = 16;
 
                     if (!zero_pad) {
                         while (temp_length++ < min_width) {
@@ -5333,6 +5529,13 @@ inline str vstr_from_format(cstr format, ...) {
                     if (prefix) {
                         *result++ = '0';
                         *result++ = 'x';
+                    }
+
+                    u32 hex_len = length - (prefix ? 2 : 0);
+
+                    while (hex_len++ < 16) {
+                        *result = '0';
+                        result++;
                     }
 
                     if (zero_pad) {
@@ -5357,7 +5560,7 @@ inline str vstr_from_format(cstr format, ...) {
                         *end-- = prev;
                     }
 
-                    result = res + index + max2(length, min_width);
+                    result = res + index + max2(16, min_width) + (prefix ? 2 : 0);
 
                     break;
                 }
@@ -5443,23 +5646,16 @@ inline str vstr_from_format(cstr format, ...) {
                     temp = res;
                     result = res + index;
 
-                    temp_length = length;
+                    temp_length = 8;
 
-                    if (!zero_pad) {
-                        while (temp_length++ < min_width) {
-                            *result = ' ';
-                            result++;
-                        }
+                    while (temp_length++ < min_width) {
+                        *result = ' ';
+                        result++;
                     }
 
                     if (prefix) {
                         *result++ = '0';
                         *result++ = 'b';
-                    }
-
-                    while (temp_length++ < min_width) {
-                        *result = zero_pad ? '0' : ' ';
-                        result++;
                     }
 
                     u8 bin = value_bin;
@@ -5471,7 +5667,7 @@ inline str vstr_from_format(cstr format, ...) {
                         *temp_result = (bin & 1) == 0 ? '0' : '1';
                     }
 
-                    result = res + index + max2(length, min_width);
+                    result = res + index + max2(8, min_width) + (prefix ? 2 : 0);
 
                     break;
                 }
