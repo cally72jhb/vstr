@@ -19,7 +19,8 @@ go through the entire string to determine it's length.<br/>
 ```
 
 <br/>
-vstring is a string of known length. The length is stored in the 4 bytes `int` before the pointer that is returned to the user.<br/>
+vstring is a string of known length. The length is stored in the 4 bytes `int` before<br/>
+the pointer that is returned to the user.<br/>
 Since the length of the string is always known, vstring is faster than vstr, but requires more memory.<br/><br/>
 
 ```
